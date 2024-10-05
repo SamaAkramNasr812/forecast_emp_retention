@@ -8,6 +8,7 @@ Original file is located at
 """
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -16,7 +17,7 @@ import pickle
 # Load the dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data.csv')  # Replace with your actual CSV file path
+    df = pd.read_csv('HR_comma_sep.csv')  # Replace with your actual CSV file path
     return df
 
 # Train the Random Forest model
@@ -27,7 +28,7 @@ def train_model(df):
 
     # Define features and target
     X = df[['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company']]
-    y = df['salary']
+    y = df['left']  # Target variable for prediction (0: Stay, 1: Leave)
 
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -50,7 +51,7 @@ def load_model():
 
 # Main function
 def main():
-    st.title("Employee Salary Prediction")
+    st.title("Employee Stay or Leave Prediction")
 
     # Load data
     df = load_data()
@@ -67,18 +68,42 @@ def main():
 
     # User input
     st.sidebar.header("Input Features")
-    satisfaction_level = st.sidebar.slider("Satisfaction Level", 0.0, 1.0, 0.5)
-    last_evaluation = st.sidebar.slider("Last Evaluation", 0.0, 1.0, 0.5)
-    number_project = st.sidebar.slider("Number of Projects", 1, 10, 3)
-    average_montly_hours = st.sidebar.slider("Average Monthly Hours", 100, 300, 150)
-    time_spend_company = st.sidebar.slider("Time Spent in Company (Years)", 1, 10, 3)
+    
+    # Satisfaction Level Input
+    satisfaction_level = st.sidebar.number_input("Satisfaction Level", min_value=0.09, max_value=1.0, value=0.38, step=0.01)
+    
+    # Last Evaluation Input
+    last_evaluation = st.sidebar.number_input("Last Evaluation", min_value=0.36, max_value=1.0, value=0.53, step=0.01)
+    
+    # Number of Projects Input
+    number_project = st.sidebar.selectbox("Number of Projects", range(2, 8))
+    
+    # Average Monthly Hours Input
+    average_montly_hours = st.sidebar.number_input("Average Monthly Hours", min_value=96, max_value=310, value=157, step=1)
+    
+    # Time Spent in Company Input
+    time_spend_company = st.sidebar.selectbox("Time Spent in Company (Years)", range(2, 11))
+    
+    # Salary Selection
+    salary = st.sidebar.selectbox("Salary Level", ["low", "medium", "high"])
 
-    # Make prediction
-    input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company]]
-    prediction = model.predict(input_data)
-    salary_prediction = le.inverse_transform(prediction)[0]
+    # Predict button
+    if st.sidebar.button("Predict"):
+        # Prepare input data for prediction
+        input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company]]
+        prediction = model.predict(input_data)
+        probabilities = model.predict_proba(input_data)[0]
 
-    st.write(f"Predicted Salary Level: {salary_prediction}")
+        # Determine expected outcome
+        expected_outcome = "STAY" if prediction[0] == 0 else "LEAVE"
+        probability_stay = probabilities[0] * 100
+        probability_leave = probabilities[1] * 100
+
+        # Display results
+        st.write(f"Employee Expected To: {expected_outcome}")
+        st.write(f"Probability To Stay: {probability_stay:.1f}%")
+        st.write(f"Probability To Leave: {probability_leave:.1f}%")
 
 if __name__ == "__main__":
     main()
+
