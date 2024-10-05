@@ -8,38 +8,77 @@ Original file is located at
 """
 import streamlit as st
 import pandas as pd
-import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 import pickle
 
-# Load the trained Random Forest model
-with open('random_forest_employee_retention_v1.pkl', 'rb') as file:
-    model = pickle.load(file)
+# Load the dataset
+@st.cache_data
+def load_data():
+    df = pd.read_csv('data.csv')  # Replace with your actual CSV file path
+    return df
 
-# Function to predict employee retention
-def predict_retention(satisfaction_level, last_evaluation, average_monthly_hours, time_in_company, salary):
-    input_data = np.array([[satisfaction_level, last_evaluation, average_monthly_hours, time_in_company, salary]])
-    prediction = model.predict(input_data)
-    probability = model.predict_proba(input_data)
-    return prediction[0], probability[0]
+# Train the Random Forest model
+def train_model(df):
+    # Encode categorical variables
+    le = LabelEncoder()
+    df['salary'] = le.fit_transform(df['salary'])
 
-# Streamlit UI
-st.title("Employee Retention Prediction")
+    # Define features and target
+    X = df[['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company']]
+    y = df['salary']
 
-# User inputs
-satisfaction_level = st.number_input("Satisfaction Level", min_value=0.0, max_value=1.0, value=0.66)
-last_evaluation = st.number_input("Last Evaluation", min_value=0.0, max_value=1.0, value=0.54)
-average_monthly_hours = st.number_input("Average Monthly Hours", min_value=0, value=120)
-time_in_company = st.number_input("Time In Company (years)", min_value=0, value=5)
-salary = st.selectbox("Salary", ["low", "medium", "high"])
+    # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-if st.button("Predict"):
-    prediction, probability = predict_retention(satisfaction_level, last_evaluation, average_monthly_hours, time_in_company, salary)
-    
-    if prediction == 1:
-        st.success("Employee Expected To: STAY")
-        st.write(f"Probability To Stay: {probability[1] * 100:.1f}%")
-        st.write(f"Probability To Leave: {probability[0] * 100:.1f}%")
+    # Train the model
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+
+    return model, le
+
+# Save the model
+def save_model(model):
+    with open('random_forest_model.pkl', 'wb') as file:
+        pickle.dump(model, file)
+
+# Load the model
+def load_model():
+    with open('random_forest_model.pkl', 'rb') as file:
+        return pickle.load(file)
+
+# Main function
+def main():
+    st.title("Employee Salary Prediction")
+
+    # Load data
+    df = load_data()
+
+    # Train model if not already trained
+    if 'model' not in st.session_state:
+        model, le = train_model(df)
+        save_model(model)
+        st.session_state.model = model
+        st.session_state.label_encoder = le
     else:
-        st.error("Employee Expected To: LEAVE")
-        st.write(f"Probability To Stay: {probability[1] * 100:.1f}%")
-        st.write(f"Probability To Leave: {probability[0] * 100:.1f}%")
+        model = st.session_state.model
+        le = st.session_state.label_encoder
+
+    # User input
+    st.sidebar.header("Input Features")
+    satisfaction_level = st.sidebar.slider("Satisfaction Level", 0.0, 1.0, 0.5)
+    last_evaluation = st.sidebar.slider("Last Evaluation", 0.0, 1.0, 0.5)
+    number_project = st.sidebar.slider("Number of Projects", 1, 10, 3)
+    average_montly_hours = st.sidebar.slider("Average Monthly Hours", 100, 300, 150)
+    time_spend_company = st.sidebar.slider("Time Spent in Company (Years)", 1, 10, 3)
+
+    # Make prediction
+    input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company]]
+    prediction = model.predict(input_data)
+    salary_prediction = le.inverse_transform(prediction)[0]
+
+    st.write(f"Predicted Salary Level: {salary_prediction}")
+
+if __name__ == "__main__":
+    main()
