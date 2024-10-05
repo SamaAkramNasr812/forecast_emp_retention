@@ -17,7 +17,7 @@ import pickle
 # Load the dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv('HR_comma_sep.csv')  # Replace with your actual CSV file path
+    df = pd.read_csv('data.csv')  # Replace with your actual CSV file path
     return df
 
 # Train the Random Forest model
