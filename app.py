@@ -8,9 +8,11 @@ Original file is located at
 """
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split, KFold
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, classification_report
+from joblib import dump, load
 import numpy as np
 # Load the dataset
 @st.cache_data
