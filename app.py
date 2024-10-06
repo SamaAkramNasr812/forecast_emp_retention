@@ -98,25 +98,30 @@ def main():
     # Salary Selection
     salary = st.sidebar.selectbox("Salary Level", ["low", "medium", "high"])
 
-    # Predict button
-    if st.sidebar.button("Predict"):
-        # Prepare input data for prediction
-        input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company]]
-        input_data = pd.DataFrame(input_data, columns=X.columns[:-1])  # Create DataFrame with the same columns as X
-        input_data = pd.get_dummies(input_data, drop_first=True)  # Get dummies for the input
-        input_data = input_data.reindex(columns=X.columns[:-1], fill_value=0)  # Align with training data
-        prediction = model.predict(input_data)
-        probabilities = model.predict_proba(input_data)[0]
+if st.sidebar.button("Predict"):
+    # Prepare input data for prediction
+    input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company, salary]]
+    input_data = pd.DataFrame(input_data, columns=['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company', 'salary'])
 
-        # Determine expected outcome
-        expected_outcome = "STAY" if prediction[0] == 0 else "LEAVE"
-        probability_stay = probabilities[0] * 100
-        probability_leave = probabilities[1] * 100
+    # Get dummies for the input
+    input_data = pd.get_dummies(input_data, drop_first=True)
 
-        # Display results
-        st.write(f"Employee Expected To: {expected_outcome}")
-        st.write(f"Probability To Stay: {probability_stay:.1f}%")
-        st.write(f"Probability To Leave: {probability_leave:.1f}%")
+    # Ensure input_data has the same columns as your training data
+    # Assuming X is your training DataFrame without the target variable
+    input_data = input_data.reindex(columns=X.columns[:-1], fill_value=0)  # Align with training data
 
+    # Make predictions
+    prediction = model.predict(input_data)
+    probabilities = model.predict_proba(input_data)[0]
+
+    # Determine expected outcome
+    expected_outcome = "STAY" if prediction[0] == 0 else "LEAVE"
+    probability_stay = probabilities[0] * 100
+    probability_leave = probabilities[1] * 100
+
+    # Display results
+    st.write(f"Employee Expected To: {expected_outcome}")
+    st.write(f"Probability To Stay: {probability_stay:.1f}%")
+    st.write(f"Probability To Leave: {probability_leave:.1f}%")
 if __name__ == "__main__":
     main()
