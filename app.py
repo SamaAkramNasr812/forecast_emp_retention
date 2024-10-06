@@ -9,9 +9,9 @@ Original file is located at
 import streamlit as st
 import pandas as pd
 import numpy as np
-from scikit-learn.ensemble import RandomForestClassifier
-from scikit-learn.model_selection import train_test_split
-from scikit-learn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 import joblib
 
 # Load the dataset
