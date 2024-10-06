@@ -53,7 +53,13 @@ def train_model(df):
     st.text(classification_report(y_test, predictions))
 
     return model, X  # Return both model and X
+# Save the model
+def save_model(model):
+    dump(model, 'random_forest_model.joblib')
 
+# Load the model
+def load_model():
+    return load('random_forest_model.joblib')
 # Main function
 def main():
     st.title("Employee Stay or Leave Prediction")
