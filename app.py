@@ -10,9 +10,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder
-import joblib
+from sklearn.metrics import classification_report, accuracy_score
+from joblib import dump, load
 
 # Load the dataset
 @st.cache_data
@@ -22,24 +23,37 @@ def load_data():
 
 # Train the Random Forest model
 def train_model(df):
-    # Encode categorical variables
-    le = LabelEncoder()
-    df['salary'] = le.fit_transform(df['salary'])
+    # Encoding categorical variables
+    df_encoded = pd.get_dummies(df, columns=['salary'], drop_first=True)
 
     # Define features and target
-    X = df[['satisfaction_level', 'last_evaluation', 'number_project', 'average_montly_hours', 'time_spend_company']]
-    y = df['left']  # Target variable for prediction (0: Stay, 1: Leave)
+    X = df_encoded.drop(columns=["left"])
+    y = df_encoded["left"]
 
     # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=0)
 
-    # Train the model
-    model = RandomForestClassifier()
+    # Initialize KFold
+    kf = KFold(n_splits=5, shuffle=True, random_state=31)
+
+    # Train the model with cross-validation
+    model = RandomForestClassifier(n_estimators=150, random_state=45)
+    model_score = cross_val_score(model, X, y, cv=kf)
+    st.write(f"Model Score (Cross-Validation): {np.mean(model_score) * 100:0.2f}%")
+
+    # Fit the model
     model.fit(X_train, y_train)
+    score = model.score(X_train, y_train) * 100
+    st.write(f"Model Score (Training): {score:0.2f}%")
 
-    return model, le
+    # Predictions and evaluation
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions) * 100
+    st.write(f"Model Score (Testing): {accuracy:0.2f}%")
 
-from joblib import dump, load
+    st.text(classification_report(y_test, predictions))
+
+    return model
 
 # Save the model
 def save_model(model):
@@ -48,7 +62,6 @@ def save_model(model):
 # Load the model
 def load_model():
     return load('random_forest_model.joblib')
-
 
 # Main function
 def main():
@@ -59,13 +72,11 @@ def main():
 
     # Train model if not already trained
     if 'model' not in st.session_state:
-        model, le = train_model(df)
+        model = train_model(df)
         save_model(model)
         st.session_state.model = model
-        st.session_state.label_encoder = le
     else:
         model = st.session_state.model
-        le = st.session_state.label_encoder
 
     # User input
     st.sidebar.header("Input Features")
@@ -92,6 +103,8 @@ def main():
     if st.sidebar.button("Predict"):
         # Prepare input data for prediction
         input_data = [[satisfaction_level, last_evaluation, number_project, average_montly_hours, time_spend_company]]
+        input_data = pd.get_dummies(pd.DataFrame(input_data, columns=X.columns[:-1]), drop_first=True)
+        input_data = input_data.reindex(columns=X.columns[:-1], fill_value=0)  # Align with training data
         prediction = model.predict(input_data)
         probabilities = model.predict_proba(input_data)[0]
 
@@ -107,4 +120,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
