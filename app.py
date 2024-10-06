@@ -12,7 +12,6 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-import pickle
 
 # Load the dataset
 @st.cache_data
@@ -39,15 +38,16 @@ def train_model(df):
 
     return model, le
 
+from joblib import dump, load
+
 # Save the model
 def save_model(model):
-    with open('random_forest_model.pkl', 'wb') as file:
-        pickle.dump(model, file)
+    dump(model, 'random_forest_model.joblib')
 
 # Load the model
 def load_model():
-    with open('random_forest_model.pkl', 'rb') as file:
-        return pickle.load(file)
+    return load('random_forest_model.joblib')
+
 
 # Main function
 def main():
