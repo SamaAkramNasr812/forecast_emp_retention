@@ -50,11 +50,6 @@ def train_model(df):
     accuracy = accuracy_score(y_test, predictions) * 100
     st.write(f"Model Score (Testing): {accuracy:0.2f}%")
 
-    cm = confusion_matrix(y_test, predictions)
-    fig = px.imshow(cm, aspect='auto', text_auto=",.0f", template="plotly_dark",
-                     color_continuous_scale="orrd", x=["Stay", "Leave"], y=["Stay", "Leave"])
-    st.plotly_chart(fig)
-
     st.text(classification_report(y_test, predictions))
 
     return model, X  # Return both model and X
